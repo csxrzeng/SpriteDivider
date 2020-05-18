@@ -3,7 +3,9 @@
   "version": "1.0.3",
   "description": "Divide sprite sheet into seperated images.",
   "main": "SpriteDivider.js",
-  "scripts": {},
+  "scripts": {
+    "test": "node bin\\SpriteDivider.js 'G:\\参考资源\\sprite'"
+  },
   "bin": {
     "spritedivider": "bin/SpriteDivider.js"
   },
@@ -11,10 +13,14 @@
   "license": "MIT",
   "dependencies": {
     "@types/cli": "^0.11.19",
-    "@types/node": "^11.11.3",
-    "@types/sharp": "^0.21.3",
+    "@types/glob": "^7.1.1",
+    "@types/node": "^14.0.1",
+    "@types/plist": "^3.0.2",
+    "@types/sharp": "^0.25.0",
     "cli": "^1.0.1",
-    "sharp": "^0.21.3"
+    "glob": "^7.1.6",
+    "plist": "^3.0.1",
+    "sharp": "^0.25.2"
   },
   "keywords": [
     "sprite",

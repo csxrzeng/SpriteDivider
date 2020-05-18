@@ -1,0 +1,102 @@
+bin文件格式：
+偏移//0-15
+0   4字节       自定义plist内容长度plist_len
+4   1字节       plist版本，2或4
+5   4字节       某个长度
+9   1字节       永远为1
+A   1字节       永远为8
+B   1字节       未知
+C   1字节       方向：1/8/2/7 dirCount
+D   1字节       永远为0
+E   1字节       永远为0
+F   1字节       动态0，静态1
+// 16 - plist_len
+version 2
+{
+    1字节       0
+    1字节       frameCount
+    1字节       frameOffset
+    1字节       可能是层级 0/1/5
+} * dirCount
+version 4
+{
+    1字节       0
+    1字节       frameCount
+    1字节       0
+    1字节       frameOffset
+    1字节       0
+    1字节       可能是层级 0/1/5
+} * dirCount
+
+2字节           帧总数
+// plist的索引数据
+{
+    4字节          数据索引 指向 FF00
+} * frameCount * dirCount
+// plist的数据
+{
+    version2 68字节
+    version4 62字节
+} * frameCount * dirCount
+
+
+
+
+
+
+
+
+
+
+
+
+// version2 plist_len version4 plist_len + 1
+png文件						png文件数据
+
+//16-
+
+plist内容格式：
+4字节                       未知
+4字节                       未知
+1字节                       方向数量
+5字节                       未知
+//方向的帧数据 * 方向数量
+{
+    2字节					帧数量
+    2字节                   帧索引
+    2字节                   未知
+}
+1字节                       0
+4字节*图片数量				 尺寸数据的字节索引
+62字节*图片数量			 	 尺寸数据
+4字节					    png文件大小+1
+
+
+
+尺寸数据（62字节）
+2字节           未知数据（一定是FF00）
+short          offsetx（负数）
+short          offsety（负数）
+short          offsetx（正数）
+short          offsety（正数）
+short          未知数据 offsetx（正数）
+short          未知数据 offsety（正数）
+6字节           未知数据 都是0
+short          未知数据 E8 FF (232)
+short          未知数据 E8 FF (232)
+short          未知数据 18 00 (24)
+short          未知数据 18 00 (24)
+short          未知数据 64 00 (100)
+short          未知数据 FF 00
+short          未知数据 00 00
+short          未知数据 22 00 (34)
+short          未知数据 01 01 (257)
+short          未知数据 01 01 (257)
+short          未知数据 00 00 (0)
+short          未知数据 00 00 (0)
+byte           未知数据 00
+int            width 47 00 00 00 (71)
+int            height 8F 00 00 00 (143)
+int          x 48 00 00 00 (72)
+int         y   00 00 00 00 (0)
+byte          未知数据 00

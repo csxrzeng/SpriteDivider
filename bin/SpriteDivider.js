@@ -1,39 +1,44 @@
 #!/usr/bin/env node
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.spriteDivider = void 0;
 const sharp = require("sharp");
 const cli = require("cli");
 const fs = require("fs");
 const path = require("path");
-cli.setUsage("SpriteDivider.js [OPTIONS] <sprite.json>");
-cli.parse({
-    format: ['f', 'spritesheet format, support: TexturePacker, egret.', 'string', 'TexturePacker']
-});
-let jsonFile = cli.args[0];
-if (!jsonFile || path.extname(jsonFile) != ".json") {
-    cli.error("spritesheet json must be specified!");
-    cli.exit(-1);
+const plist = require("plist");
+const BinFormat_1 = require("./BinFormat");
+let basedir;
+let jsonFile;
+function spriteDivider(input, format, index = 0) {
+    console.log(`${index} >> ${input}`);
+    return new Promise((resolve, reject) => {
+        jsonFile = input;
+        basedir = path.dirname(jsonFile);
+        fs.readFile(jsonFile, (err, data) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            switch (format) {
+                case 'TexturePacker':
+                    readTexturePackerFormat(JSON.parse(data.toString()));
+                    break;
+                case 'egret':
+                    readEgretFormat(JSON.parse(data.toString()));
+                    break;
+                case 'bin':
+                    readBinFormat(data);
+                    break;
+                default:
+                    reject("unsupported spritesheet format!");
+                    return;
+            }
+            resolve();
+        });
+    });
 }
-let format = cli.options.format;
-let basedir = path.dirname(jsonFile);
-fs.readFile(jsonFile, (err, data) => {
-    if (err) {
-        cli.error(err.message);
-        cli.exit(-1);
-    }
-    switch (format) {
-        case 'TexturePacker':
-            readTexturePackerFormat(JSON.parse(data.toString()));
-            break;
-        case 'egret':
-            readEgretFormat(JSON.parse(data.toString()));
-            break;
-        default:
-            cli.error("unsupported spritesheet format!");
-            cli.exit(-1);
-            break;
-    }
-});
+exports.spriteDivider = spriteDivider;
 function readTexturePackerFormat(frameData) {
     let outPath = path.resolve(basedir, frameData.meta.prefix);
     let images = frameData.meta.image.split(",");
@@ -78,5 +83,63 @@ function readEgretFormat(frameData) {
             console.log(err.message);
         });
     }
+}
+function countFF00(buffer) {
+    let u8a = new Uint8Array(buffer);
+    let from = 0;
+    let count = 0;
+    while (from < u8a.length) {
+        let idx = u8a.indexOf(0xFF, from);
+        if (idx == -1)
+            break;
+        if (u8a[idx + 1] == 0) {
+            count++;
+        }
+        from = idx + 1;
+    }
+    return count;
+}
+function readBinFormat(buffer) {
+    let outPath = path.resolve(basedir, 'output');
+    if (!fs.existsSync(outPath)) {
+        fs.mkdirSync(outPath);
+    }
+    let filename = path.basename(jsonFile, '.bin');
+    let outPng = path.resolve(outPath, filename + '.png');
+    let outPlist = path.resolve(outPath, filename + '.plist');
+    let header = new BinFormat_1.BinFormat(buffer, filename);
+    fs.writeFile(outPng, buffer.slice(header.pngOffset), () => { }); // 图片数据
+    if (header.dirCount != 1 && header.dirCount != 8) {
+        console.warn('not supported dirCount', header.dirCount);
+        return;
+    }
+    let animations = header.dirAni;
+    let descArr = header.descArr;
+    let maxSize = header.maxSize;
+    let halfSize = header.maxSize / 2;
+    let frames = {};
+    for (let i = 0; i < descArr.length; i++) {
+        let desc = descArr[i];
+        if (desc.width % 2 != 0 || desc.height % 2 != 0) {
+            // console.warn('width为奇数，导致offset为小数');
+        }
+        let st = { x: halfSize - desc.centerX, y: halfSize - desc.centerY };
+        let offset = { x: st.x + desc.width / 2 - halfSize, y: halfSize - (st.y + desc.height / 2) };
+        frames[desc.key] = {
+            frame: `{{${desc.x},${desc.y}},{${desc.width},${desc.height}}}`,
+            offset: `{${offset.x},${offset.y}}`,
+            rotated: false,
+            sourceColorRect: `{{${st.x},${st.y}},{${desc.width},${desc.height}}}`,
+            sourceSize: `{${maxSize},${maxSize}}`
+        };
+    }
+    let metadata = {
+        format: 2,
+        textureFileName: filename + '.png',
+        size: `{${0},${0}}`,
+    };
+    let plistXML = { animations: animations, frames: frames, metadata };
+    let plistStr = plist.build(plistXML, { pretty: true });
+    fs.writeFile(outPlist, plistStr, { flag: 'w', encoding: 'utf8' }, () => { });
 }
 //# sourceMappingURL=SpriteDivider.js.map
